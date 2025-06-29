@@ -5,7 +5,7 @@ metadata:
   labels: 
     app: blue
 spec:
-  replicas: 0
+  replicas: 0 
   selector:
     matchLabels:
       app: blue
@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: demo
-        image: argoproj/rollouts-demo:blue
+        image: argoproj/rollouts-demo:green
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
