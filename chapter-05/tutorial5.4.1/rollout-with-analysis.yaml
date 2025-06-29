@@ -1,4 +1,4 @@
-apiVersion: argoproj.io/v1alpha1
+apiVersion: argoproj.io/v1alpha1  
 kind: Rollout
 metadata:
   name: demo
@@ -8,14 +8,23 @@ spec:
   selector:
     matchLabels:
       app: demo
+  # strategy:
+  #   canary:
+  #     analysis:
+  #       templateName: pass
+  #     steps:
+  #     - setWeight: 10
+  #     - pause:
+  #         duration: 20  
   strategy:
     canary:
-      analysis:
-        templateName: pass
       steps:
       - setWeight: 10
-      - pause:
-          duration: 20      
+      - pause: {duration: 20s}
+      - analysis:
+          templates:
+          - templateName: pass          
+
   template:
     metadata:
       labels:
@@ -27,6 +36,48 @@ spec:
         name: demo
         ports:
         - containerPort: 8080
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: rollout-canary-preview
+spec:
+  replicas: 3
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: rollout-canary-production
+  template:
+    metadata:
+      labels:
+        app: rollout-canary-production
+    spec:
+      containers:
+      - name: rollouts-demo
+        image: argoproj/rollouts-demo:blue
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+  strategy:
+    canary:
+      steps:
+      # The initial step starts an experiment that runs a single pod ReplicaSet using the new pod spec
+      # When the experiment is terminated, the rollout will progress through rest of the canary steps.
+      - experiment:
+          templates:
+          - name: canary-preview
+            specRef: canary
+            # Selector and metadata are overwritten to be something different from the rollout's
+            # spec.selector. This allows the preview stack to be reachable through a different
+            # service without receiving production traffic.
+            selector:
+              matchLabels:
+                app: rollout-canary-preview
+            metadata:
+              labels:
+                app: rollout-canary-preview
+
 ---
 apiVersion: v1
 kind: Service
